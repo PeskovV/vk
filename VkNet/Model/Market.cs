@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.ObjectModel;
-
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using VkNet.Enums;
@@ -13,17 +12,10 @@ namespace VkNet.Model
 	/// Информация о продукте.
 	/// </summary>
 	[Serializable]
-	public class Market
+	public class Market : MediaAttachment
 	{
-		/// <summary>
-		/// Идентификатор
-		/// </summary>
-		public long Id { get; set; }
-
-		/// <summary>
-		/// Идентификатор владельца товара
-		/// </summary>
-		public long? OwnerId { get; set; }
+		/// <inheritdoc />
+		protected override string Alias => "market";
 
 		/// <summary>
 		/// Название товара
@@ -84,11 +76,11 @@ namespace VkNet.Model
 		/// <summary>
 		/// Разобрать из json.
 		/// </summary>
-		/// <param name="response">Ответ сервера.</param>
-		/// <returns></returns>
+		/// <param name="response"> Ответ сервера. </param>
+		/// <returns> </returns>
 		public static Market FromJson(VkResponse response)
 		{
-			var result = new Market
+			return new Market
 			{
 				Id = response["id"] ?? -1,
 				OwnerId = response["owner_id"],
@@ -104,8 +96,6 @@ namespace VkNet.Model
 				CanRepost = response["can_repost"],
 				Likes = response["likes"]
 			};
-
-			return result;
 		}
 	}
 }

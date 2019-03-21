@@ -1,17 +1,17 @@
-﻿
-using VkNet.Enums.SafetyEnums;
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using VkNet.Model.Attachments;
+using VkNet.Enums.SafetyEnums;
 using VkNet.Utils;
+using VkNet.Utils.JsonConverter;
 
-namespace VkNet.Model
+namespace VkNet.Model.Attachments
 {
 	/// <summary>
-	/// Запись со стены пользователя или сообщества. Используется для отправки сообщений
+	/// Запись со стены пользователя или сообщества. Используется для отправки
+	/// сообщений
 	/// </summary>
 	/// <remarks>
 	/// См. описание http://vk.com/dev/post
@@ -20,13 +20,8 @@ namespace VkNet.Model
 	[Serializable]
 	public class Wall : MediaAttachment
 	{
-		/// <summary>
-		/// Пост.
-		/// </summary>
-		static Wall()
-		{
-			RegisterType(typeof(Wall), "wall");
-		}
+		/// <inheritdoc />
+		protected override string Alias => "wall";
 
 		/// <summary>
 		/// Идентификатор автора записи.
@@ -34,7 +29,8 @@ namespace VkNet.Model
 		public long? FromId { get; set; }
 
 		/// <summary>
-		/// Идентификатор создателя записи в группе или паблике (тот, кто фактически ее написал)
+		/// Идентификатор создателя записи в группе или паблике (тот, кто фактически ее
+		/// написал)
 		/// </summary>
 		public long? CreatedBy { get; set; }
 
@@ -60,7 +56,8 @@ namespace VkNet.Model
 		public long? ReplyPostId { get; set; }
 
 		/// <summary>
-		/// <c>true</c>, если запись была создана с опцией «Только для друзей», <c>false</c> в противном случае.
+		/// <c> true </c>, если запись была создана с опцией «Только для друзей»,
+		/// <c> false </c> в противном случае.
 		/// </summary>
 		public bool? FriendsOnly { get; set; }
 
@@ -80,13 +77,16 @@ namespace VkNet.Model
 		public Reposts Reposts { get; set; }
 
 		/// <summary>
-		/// Информация о просмотрах записи. 
+		/// Информация о просмотрах записи.
 		/// </summary>
 		public PostView Views { get; set; }
 
 		/// <summary>
-		/// Тип записи (post, copy, reply, postpone, suggest). Если PostType равен "copy", то запись является копией записи с чужой стены.
+		/// Тип записи (post, copy, reply, postpone, suggest). Если PostType равен "copy",
+		/// то запись является копией записи с
+		/// чужой стены.
 		/// </summary>
+		[JsonConverter(typeof(SafetyEnumJsonConverter))]
 		public PostType PostType { get; set; }
 
 		/// <summary>
@@ -97,6 +97,7 @@ namespace VkNet.Model
 		/// <summary>
 		/// Информация о вложениях записи (фотографии ссылки и т.п.).
 		/// </summary>
+		[JsonConverter(typeof(AttachmentJsonConverter))]
 		public ReadOnlyCollection<Attachment> Attachments { get; set; }
 
 		/// <summary>
@@ -105,17 +106,20 @@ namespace VkNet.Model
 		public Geo Geo { get; set; }
 
 		/// <summary>
-		/// Идентификатор автора, если запись была опубликована от имени сообщества и подписана пользователем.
+		/// Идентификатор автора, если запись была опубликована от имени сообщества и
+		/// подписана пользователем.
 		/// </summary>
 		public long? SignerId { get; set; }
 
 		/// <summary>
-		/// Массив, содержащий историю репостов для записи. Возвращается только в том случае, если запись является репостом.
+		/// Массив, содержащий историю репостов для записи. Возвращается только в том
+		/// случае, если запись является репостом.
 		/// </summary>
 		public ReadOnlyCollection<Post> CopyHistory { get; set; }
 
 		/// <summary>
-		/// Информация о том, может ли текущий пользователь закрепить запись (1 — может, 0 — не может)
+		/// Информация о том, может ли текущий пользователь закрепить запись (1 — может, 0
+		/// — не может)
 		/// </summary>
 		public bool CanPin { get; set; }
 
@@ -139,59 +143,20 @@ namespace VkNet.Model
 		/// </summary>
 		public bool MarkedAsAds { get; set; }
 
-		#region Поля, установленные экспериментально
-
-		/// <summary>
-		/// Текст комментария, добавленного при копировании (если запись является копией записи с чужой стены).
-		/// </summary>
-		public string CopyText { get; set; }
-
-		/// <summary>
-		/// Тип записи-оригинала (если запись является копией записи с чужой стены).
-		/// </summary>
-		public string CopyPostType { get; set; }
-
-		/// <summary>
-		/// Идентификатор скопированной записи на стене ее владельца (если запись является копией записи с чужой стены).
-		/// </summary>
-		public long? CopyPostId { get; set; }
-
-		/// <summary>
-		/// Идентификатор владельца стены, у которого была скопирована запись (если запись является копией записи с чужой стены).
-		/// </summary>
-		public long? CopyOwnerId { get; set; }
-
-		/// <summary>
-		/// Время публикации записи-оригинала (если запись является копией записи с чужой стены).
-		/// </summary>
-		[JsonConverter(typeof(UnixDateTimeConverter))]
-		public DateTime? CopyPostDate { get; set; }
-
-		/// <summary>
-		/// Если запись является копией записи с чужой стены, то в этом поле содержится идентификатор коментатора записи.
-		/// </summary>
-		public long? CopyCommenterId { get; set; }
-
-		/// <summary>
-		/// Если запись является копией записи с чужой стены, то в этом поле содержится идентификатор коментария.
-		/// </summary>
-		public long? CopyCommentId { get; set; }
-
-		#endregion
-
-		#region Методы
+	#region Методы
 
 		/// <summary>
 		/// Парсинг из JSON
 		/// </summary>
-		/// <param name="response"></param>
-		/// <returns></returns>
+		/// <param name="response"> </param>
+		/// <returns> </returns>
 		public static Wall FromJson(VkResponse response)
 		{
 			if (response["id"] == null)
 			{
 				return null;
 			}
+
 			var post = new Wall
 			{
 				Id = response["id"],
@@ -230,15 +195,15 @@ namespace VkNet.Model
 			return post;
 		}
 
-		#endregion
+	#endregion
 
 		/// <summary>
-		/// Приведение к <c>Wall</c> из <c>Post</c>
+		/// Приведение к <c> Wall </c> из <c> Post </c>
 		/// </summary>
-		/// <param name="post"></param>
+		/// <param name="post"> </param>
 		public static explicit operator Wall(Post post)
 		{
-			return new Wall()
+			return new Wall
 			{
 				Id = post.Id,
 				OwnerId = post.OwnerId,
@@ -273,5 +238,69 @@ namespace VkNet.Model
 				MarkedAsAds = post.MarkedAsAds
 			};
 		}
+
+		/// <summary>
+		/// Преобразование класса <see cref="Wall" /> в <see cref="VkParameters" />
+		/// </summary>
+		/// <param name="response"> Ответ сервера. </param>
+		/// <returns>Результат преобразования в <see cref="Wall" /></returns>
+		public static implicit operator Wall(VkResponse response)
+		{
+			if (response == null)
+			{
+				return null;
+			}
+
+			return response.HasToken()
+				? FromJson(response)
+				: null;
+		}
+
+	#region Поля, установленные экспериментально
+
+		/// <summary>
+		/// Текст комментария, добавленного при копировании (если запись является копией
+		/// записи с чужой стены).
+		/// </summary>
+		public string CopyText { get; set; }
+
+		/// <summary>
+		/// Тип записи-оригинала (если запись является копией записи с чужой стены).
+		/// </summary>
+		public string CopyPostType { get; set; }
+
+		/// <summary>
+		/// Идентификатор скопированной записи на стене ее владельца (если запись является
+		/// копией записи с чужой стены).
+		/// </summary>
+		public long? CopyPostId { get; set; }
+
+		/// <summary>
+		/// Идентификатор владельца стены, у которого была скопирована запись (если запись
+		/// является копией записи с чужой
+		/// стены).
+		/// </summary>
+		public long? CopyOwnerId { get; set; }
+
+		/// <summary>
+		/// Время публикации записи-оригинала (если запись является копией записи с чужой
+		/// стены).
+		/// </summary>
+		[JsonConverter(typeof(UnixDateTimeConverter))]
+		public DateTime? CopyPostDate { get; set; }
+
+		/// <summary>
+		/// Если запись является копией записи с чужой стены, то в этом поле содержится
+		/// идентификатор коментатора записи.
+		/// </summary>
+		public long? CopyCommenterId { get; set; }
+
+		/// <summary>
+		/// Если запись является копией записи с чужой стены, то в этом поле содержится
+		/// идентификатор коментария.
+		/// </summary>
+		public long? CopyCommentId { get; set; }
+
+	#endregion
 	}
 }

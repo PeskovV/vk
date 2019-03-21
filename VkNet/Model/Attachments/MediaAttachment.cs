@@ -1,55 +1,47 @@
 using System;
-using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace VkNet.Model.Attachments
 {
-    /// <summary>
-    /// Медиа вложение.
-    /// </summary>
-    [Serializable]
-    public abstract class MediaAttachment
+	/// <summary>
+	/// Медиа вложение.
+	/// </summary>
+	[Serializable]
+	public abstract class MediaAttachment
 	{
 		/// <summary>
-		/// Коллекция вложений
+		/// Наименование типа которое приходит от vk.com
 		/// </summary>
-		private static readonly IDictionary<Type, string> Types = new Dictionary<Type, string>();
+		protected abstract string Alias { get; }
 
 		/// <summary>
 		/// Идентификатор вложенеия.
 		/// </summary>
+		[JsonProperty("id")]
 		public long? Id { get; set; }
 
 		/// <summary>
 		/// Идентификатор владельца вложения.
 		/// </summary>
+		[JsonProperty("owner_id")]
 		public long? OwnerId { get; set; }
+
+		/// <summary>
+		/// Ключ доступа
+		/// </summary>
+		[JsonProperty("access_key")]
+		public string AccessKey { get; set; }
 
 		/// <summary>
 		/// Преобразовать вложение в строку.
 		/// </summary>
 		public override string ToString()
 		{
-			return $"{MatchType(GetType())}{OwnerId}_{Id}";
-		}
+			var result = $"{Alias}{OwnerId}_{Id}";
 
-		/// <summary>
-		/// Зарегистрировать тип.
-		/// </summary>
-		/// <param name="type">тип вложения.</param>
-		/// <param name="match">Соответствие.</param>
-		protected static void RegisterType(Type type, string match)
-		{
-			Types.Add(type, match);
-		}
-
-		/// <summary>
-		/// Соответствие типу.
-		/// </summary>
-		/// <param name="type">Тип вложения.</param>
-		/// <returns></returns>
-		private static string MatchType(Type type)
-		{
-			return Types[type];
+			return string.IsNullOrWhiteSpace(AccessKey)
+				? result
+				: $"{result}_{AccessKey}";
 		}
 	}
 }

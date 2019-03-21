@@ -1,5 +1,4 @@
 ﻿using System;
-
 using VkNet.Utils;
 
 namespace VkNet.Model.Attachments
@@ -10,13 +9,8 @@ namespace VkNet.Model.Attachments
 	[Serializable]
 	public class Gift : MediaAttachment
 	{
-		/// <summary>
-		/// Подарок.
-		/// </summary>
-		static Gift()
-		{
-			RegisterType(typeof(Gift), "gift");
-		}
+		/// <inheritdoc />
+		protected override string Alias => "gift";
 
 		/// <summary>
 		/// Изображение 48х48.
@@ -36,19 +30,34 @@ namespace VkNet.Model.Attachments
 		/// <summary>
 		/// Разобрать из json.
 		/// </summary>
-		/// <param name="response">Ответ сервера.</param>
-		/// <returns></returns>
+		/// <param name="response"> Ответ сервера. </param>
+		/// <returns> </returns>
 		public static Gift FromJson(VkResponse response)
 		{
-			var gift = new Gift
+			return new Gift
 			{
-				Id = response["id"],
-				Thumb48 = response["thumb_48"],
-				Thumb96 = response["thumb_96"],
-				Thumb256 = response["thumb_256"]
+				Id = response[key: "id"],
+				Thumb48 = response[key: "thumb_48"],
+				Thumb96 = response[key: "thumb_96"],
+				Thumb256 = response[key: "thumb_256"]
 			};
+		}
 
-			return gift;
+		/// <summary>
+		/// Преобразование класса <see cref="Gift" /> в <see cref="VkParameters" />
+		/// </summary>
+		/// <param name="response"> Ответ сервера. </param>
+		/// <returns>Результат преобразования в <see cref="Gift" /></returns>
+		public static implicit operator Gift(VkResponse response)
+		{
+			if (response == null)
+			{
+				return null;
+			}
+
+			return response.HasToken()
+				? FromJson(response)
+				: null;
 		}
 	}
 }

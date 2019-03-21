@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
+using VkNet.Abstractions;
 using VkNet.Utils;
 
-namespace VkNet.Model.RequestParams
+namespace VkNet.Model.RequestParams.Market
 {
 	/// <summary>
 	/// Параметр для добавления / редактирования товара
@@ -11,95 +13,111 @@ namespace VkNet.Model.RequestParams
 	public class MarketProductParams
 	{
 		/// <summary>
-		/// Идентификатор владельца товара. Обратите внимание, идентификатор сообщества в параметре owner_id необходимо указывать со знаком "-" — например, owner_id=-1 соответствует идентификатору сообщества ВКонтакте API (club1)  целое число, обязательный параметр (целое число, обязательный параметр).
+		/// Идентификатор владельца товара. Обратите внимание, идентификатор сообщества в
+		/// параметре owner_id необходимо
+		/// указывать со знаком "-" — например, owner_id=-1 соответствует идентификатору
+		/// сообщества ВКонтакте API (club1)
+		/// целое число, обязательный параметр (целое число, обязательный параметр).
 		/// </summary>
-		public long OwnerId
-		{
-			get; set;
-		}
+		[JsonProperty("photo_ids")]
+		public long OwnerId { get; set; }
 
 		/// <summary>
-		/// Идентификатор товара. 
+		/// Идентификатор товара.
 		/// </summary>
+		/// <remarks>
+		/// Только для метода <see cref="IMarketsCategory.Edit"/>
+		/// </remarks>
+		[JsonProperty("item_id")]
 		public long? ItemId { get; set; }
-		
 
 		/// <summary>
-		/// Название товара. строка, минимальная длина 4, максимальная длина 100, обязательный параметр (строка, минимальная длина 4, максимальная длина 100, обязательный параметр).
+		/// Название товара. строка, минимальная длина 4, максимальная длина 100,
+		/// обязательный параметр (строка, минимальная
+		/// длина 4, максимальная длина 100, обязательный параметр).
 		/// </summary>
-		public string Name
-		{
-			get; set;
-		}
+		[JsonProperty("name")]
+		public string Name { get; set; }
 
 		/// <summary>
-		/// Описание товара. строка, минимальная длина 10, обязательный параметр (строка, минимальная длина 10, обязательный параметр).
+		/// Описание товара. строка, минимальная длина 10, обязательный параметр (строка,
+		/// минимальная длина 10, обязательный
+		/// параметр).
 		/// </summary>
-		public string Description
-		{
-			get; set;
-		}
+		[JsonProperty("description")]
+		public string Description { get; set; }
 
 		/// <summary>
-		/// Идентификатор категории товара. положительное число, обязательный параметр (положительное число, обязательный параметр).
+		/// Идентификатор категории товара. положительное число, обязательный параметр
+		/// (положительное число, обязательный
+		/// параметр).
 		/// </summary>
-		public long CategoryId
-		{
-			get; set;
-		}
+		[JsonProperty("category_id")]
+		public long CategoryId { get; set; }
 
 		/// <summary>
-		/// Цена товара. дробное число, обязательный параметр, минимальное значение 0.01 (дробное число, обязательный параметр, минимальное значение 0.01).
+		/// Цена товара. дробное число, обязательный параметр, минимальное значение 0.01
+		/// (дробное число, обязательный параметр,
+		/// минимальное значение 0.01).
 		/// </summary>
-		public decimal Price
-		{
-			get; set;
-		}
+		[JsonProperty("price")]
+		public decimal Price { get; set; }
 
 		/// <summary>
-		/// Статус товара (1 — товар удален, 0 — товар не удален). флаг, может принимать значения 1 или 0 (флаг, может принимать значения 1 или 0).
+		/// Статус товара (1 — товар удален, 0 — товар не удален). флаг, может принимать
+		/// значения 1 или 0 (флаг, может
+		/// принимать значения 1 или 0).
 		/// </summary>
-		public bool Deleted
-		{
-			get; set;
-		}
+		[JsonProperty("deleted")]
+		public bool Deleted { get; set; }
 
 		/// <summary>
-		/// Идентификатор фотографии обложки товара. положительное число, обязательный параметр (положительное число, обязательный параметр).
+		/// Идентификатор фотографии обложки товара. положительное число, обязательный
+		/// параметр (положительное число,
+		/// обязательный параметр).
 		/// </summary>
-		public long MainPhotoId
-		{
-			get; set;
-		}
+		[JsonProperty("main_photo_id")]
+		public long MainPhotoId { get; set; }
 
 		/// <summary>
-		/// Идентификаторы дополнительных фотографий товара. список положительных чисел, разделенных запятыми, количество элементов должно составлять не более 4 (список положительных чисел, разделенных запятыми, количество элементов должно составлять не более 4).
+		/// Идентификаторы дополнительных фотографий товара. список положительных чисел,
+		/// разделенных запятыми, количество
+		/// элементов должно составлять не более 4 (список положительных чисел, разделенных
+		/// запятыми, количество элементов
+		/// должно составлять не более 4).
 		/// </summary>
-		public IEnumerable<long> PhotoIds
-		{
-			get; set;
-		}
+		[JsonProperty("photo_ids")]
+		public IEnumerable<long> PhotoIds { get; set; }
+
+		/// <summary>
+		/// Ссылка на сайт товара.
+		/// </summary>
+		/// <remarks>
+		/// Строка, минимальная длина 0, максимальная длина 320
+		/// </remarks>
+		[JsonProperty("url")]
+		public Uri Url { get; set; }
 
 		/// <summary>
 		/// Привести к типу VkParameters.
 		/// </summary>
-		/// <param name="p">Параметры.</param>
-		/// <returns></returns>
+		/// <param name="p"> Параметры. </param>
+		/// <returns> </returns>
 		public static VkParameters ToVkParameters(MarketProductParams p)
 		{
-			var parameters = new VkParameters {
+			return new VkParameters
+			{
 				{ "owner_id", p.OwnerId },
-				{ "item_id", p.ItemId},
+				{ "item_id", p.ItemId },
 				{ "name", p.Name },
 				{ "description", p.Description },
 				{ "category_id", p.CategoryId },
 				{ "price", p.Price },
 				{ "deleted", p.Deleted },
 				{ "main_photo_id", p.MainPhotoId },
-				{ "photo_ids", p.PhotoIds }
+				{ "photo_ids", p.PhotoIds },
+				{ "url", p.Url }
 			};
-
-			return parameters;
 		}
 	}
 }

@@ -1,5 +1,4 @@
 ﻿using System;
-
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using VkNet.Utils;
@@ -8,59 +7,57 @@ namespace VkNet.Model.Attachments
 {
 	/// <summary>
 	/// Заметка пользователя.
-	/// См. описание http://vk.com/dev/note
 	/// </summary>
+	/// <remarks>
+	/// <a href="http://vk.com/dev/note">См. описание</a>
+	/// </remarks>
 	[Serializable]
 	public class Note : MediaAttachment
-    {
+	{
+		/// <inheritdoc />
+		protected override string Alias => "note";
+
 		/// <summary>
-		/// Заметка пользователя.
+		/// Заголовок заметки.
 		/// </summary>
-		static Note()
-		{
-			RegisterType(typeof (Note), "note");
-		}
+		public string Title { get; set; }
 
 		/// <summary>
-        /// Заголовок заметки.
-        /// </summary>
-        public string Title { get; set; }
+		/// Текст заметки.
+		/// </summary>
+		public string Text { get; set; }
 
-        /// <summary>
-        /// Текст заметки.
-        /// </summary>
-        public string Text { get; set; }
+		/// <summary>
+		/// Дата создания заметки.
+		/// </summary>
+		[JsonConverter(typeof(UnixDateTimeConverter))]
+		public DateTime? Date { get; set; }
 
-        /// <summary>
-        /// Дата создания заметки.
-        /// </summary>
-        [JsonConverter(typeof(UnixDateTimeConverter))]
-        public DateTime? Date { get; set; }
+		/// <summary>
+		/// Количество комментариев к заметке.
+		/// </summary>
+		public int? CommentsCount { get; set; }
 
-        /// <summary>
-        /// Количество комментариев к заметке.
-        /// </summary>
-        public int? CommentsCount { get; set; }
-
-        /// <summary>
-        /// Количество прочитанных комментариев (только при запросе информации о заметке текущего пользователя).
-        /// </summary>
-        public int? ReadCommentsCount { get; set; }
+		/// <summary>
+		/// Количество прочитанных комментариев (только при запросе информации о заметке
+		/// текущего пользователя).
+		/// </summary>
+		public int? ReadCommentsCount { get; set; }
 
 		/// <summary>
 		/// Адрес страницы для отображения заметки.
 		/// </summary>
 		public Uri ViewUrl { get; set; }
-		#region Методы
+
+	#region Методы
 
 		/// <summary>
-		/// 
 		/// </summary>
-		/// <param name="response"></param>
-		/// <returns></returns>
+		/// <param name="response"> </param>
+		/// <returns> </returns>
 		public static Note FromJson(VkResponse response)
 		{
-			var note = new Note
+			return new Note
 			{
 				Id = response["id"],
 				OwnerId = response["user_id"],
@@ -71,10 +68,25 @@ namespace VkNet.Model.Attachments
 				ReadCommentsCount = response["read_comments"],
 				ViewUrl = response["view_url"]
 			};
-
-			return note;
 		}
 
-		#endregion
+		/// <summary>
+		/// Преобразование класса <see cref="Note" /> в <see cref="VkParameters" />
+		/// </summary>
+		/// <param name="response"> Ответ сервера. </param>
+		/// <returns>Результат преобразования в <see cref="Note" /></returns>
+		public static implicit operator Note(VkResponse response)
+		{
+			if (response == null)
+			{
+				return null;
+			}
+
+			return response.HasToken()
+				? FromJson(response)
+				: null;
+		}
+
+	#endregion
 	}
 }

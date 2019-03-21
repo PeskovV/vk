@@ -1,5 +1,5 @@
-﻿using System;
-
+using System;
+using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using VkNet.Enums;
@@ -14,84 +14,155 @@ namespace VkNet.Model.Attachments
 	[Serializable]
 	public class Audio : MediaAttachment
 	{
-		static Audio()
-		{
-			RegisterType(typeof(Audio), "audio");
-		}
+		/// <inheritdoc />
+		protected override string Alias => "audio";
 
 		/// <summary>
 		/// Исполнитель аудиозаписи.
 		/// </summary>
-		public string Artist
-		{ get; set; }
+		[JsonProperty("artist")]
+		public string Artist { get; set; }
 
 		/// <summary>
 		/// Название композиции.
 		/// </summary>
-		public string Title
-		{ get; set; }
+		[JsonProperty("title")]
+		public string Title { get; set; }
 
 		/// <summary>
 		/// Длительность аудиозаписи в секундах.
 		/// </summary>
-		public int Duration
-		{ get; set; }
-
-		/// <summary>
-		/// Ссылка на аудиозапись (привязана к ip-адресу клиентского приложения).
-		/// </summary>
-		public Uri Uri
-		{ get; set; }
-
-		/// <summary>
-		/// Идентификатор текста аудиозаписи (если доступно).
-		/// </summary>
-		public long? LyricsId
-		{ get; set; }
-
-		/// <summary>
-		/// Идентификатор альбома аудиозаписи (если присвоен).
-		/// </summary>
-		public long? AlbumId
-		{ get; set; }
-
-		/// <summary>
-		/// Жанр аудиозаписи.
-		/// </summary>
-		public AudioGenre? Genre
-		{ get; set; }
+		[JsonProperty("duration")]
+		public int Duration { get; set; }
 
 		/// <summary>
 		/// Дата добавления.
 		/// </summary>
 		[JsonConverter(typeof(UnixDateTimeConverter))]
-		public DateTime? Date
-		{ get; set; }
+		[JsonProperty("date")]
+		public DateTime Date { get; set; }
 
-		#region Методы
+		/// <summary>
+		/// Ссылка на аудиозапись (привязана к ip-адресу клиентского приложения).
+		/// </summary>
+		[JsonProperty("url")]
+		public Uri Url { get; set; }
+
+		/// <summary>
+		/// Альбом аудиозаписи.
+		/// </summary>
+		[JsonProperty("album")]
+		public AudioAlbum Album { get; set; }
+
+		/// <summary>
+		/// true, если аудиозапись лицензируется.
+		/// </summary>
+		[JsonProperty("is_licensed")]
+		public bool? IsLicensed { get; set; }
+
+		/// <summary>
+		/// true, если аудиозапись в высоком качестве.
+		/// </summary>
+		[JsonProperty("is_hq")]
+		public bool? IsHq { get; set; }
+
+		/// <summary>
+		/// Жанр аудиозаписи.
+		/// </summary>
+		[JsonProperty("track_genre_id")]
+		public AudioGenre? TrackGenre { get; set; }
+
+		/// <summary>
+		/// Жанр аудиозаписи.
+		/// </summary>
+		[JsonProperty("genre_id")]
+		public AudioGenre? Genre { get; set; }
+
+		/// <summary>
+		/// Идентификатор текста аудиозаписи (если доступно).
+		/// </summary>
+		[JsonProperty("lyrics_id")]
+		public long? LyricsId { get; set; }
+
+		/// <summary>
+		/// Неизвестно.
+		/// </summary>
+		[JsonProperty("content_restricted")]
+		public int? ContentRestricted { get; set; }
+
+		/// <summary>
+		/// Список исполнителей.
+		/// </summary>
+		[JsonProperty("main_artists")]
+		public IEnumerable<AudioArtist> MainArtists { get; set; }
+
+		/// <summary>
+		/// Список исполнителей.
+		/// </summary>
+		[JsonProperty("featured_artists")]
+		public IEnumerable<AudioArtist> FeaturedArtists { get; set; }
+
+		/// <summary>
+		/// Подзаголовок(?)  композиции.
+		/// </summary>
+		[JsonProperty("subtitle")]
+		public string Subtitle { get; set; }
+
+		/// <summary>
+		/// Неизвестно (получено экспериментально).
+		/// </summary>
+		[JsonProperty("track_code")]
+		public string TrackCode { get; set; }
+
+	#region Методы
+
 		/// <summary>
 		/// Разобрать из json.
 		/// </summary>
-		/// <param name="response">Ответ сервера.</param>
-		/// <returns></returns>
+		/// <param name="response"> Ответ сервера. </param>
+		/// <returns> </returns>
 		public static Audio FromJson(VkResponse response)
 		{
-			var audio = new Audio
+			return new Audio
 			{
-				Id = response["audio_id"] ?? response["aid"] ?? response["id"],
+				Id = response["id"],
 				OwnerId = response["owner_id"],
 				Artist = response["artist"],
 				Title = response["title"],
 				Duration = response["duration"],
-				Uri = response["url"],
+				Url = response["url"],
 				LyricsId = response["lyrics_id"],
-				AlbumId = response["album_id"],
+				Album = response["album"],
+				AccessKey = response["access_key"],
+				IsHq = response["is_hq"],
+				IsLicensed = response["is_licensed"],
+				TrackGenre = response["track_genre_id"],
+				ContentRestricted = response["content_restricted"],
 				Genre = response["genre_id"] ?? response["genre"],
-				Date = response["date"]
+				Date = response["date"],
+				MainArtists = response["main_artists"].ToReadOnlyCollectionOf<AudioArtist>(x => x),
+				FeaturedArtists = response["featured_artists"].ToReadOnlyCollectionOf<AudioArtist>(x => x),
+				Subtitle = response["subtitle"]
 			};
-			return audio;
 		}
 
-		#endregion
+		/// <summary>
+		/// Преобразование класса <see cref="Audio" /> в <see cref="VkParameters" />
+		/// </summary>
+		/// <param name="response"> Ответ сервера. </param>
+		/// <returns>Результат преобразования в <see cref="Audio" /></returns>
+		public static implicit operator Audio(VkResponse response)
+		{
+			if (response == null)
+			{
+				return null;
+			}
+
+			return response.HasToken()
+				? FromJson(response)
+				: null;
+		}
+
+	#endregion
 	}
 }

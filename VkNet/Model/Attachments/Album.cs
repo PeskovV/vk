@@ -1,5 +1,4 @@
 ﻿using System;
-
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using VkNet.Utils;
@@ -13,50 +12,47 @@ namespace VkNet.Model.Attachments
 	[Serializable]
 	public class Album : MediaAttachment
 	{
-		static Album()
-		{
-			RegisterType(typeof (Album), "album");
-		}
+		/// <inheritdoc />
+		protected override string Alias => "album";
 
 		/// <summary>
-        /// Обложка альбома.
-        /// </summary>
-        public Photo Thumb { get; set; }
-
-		/// <summary>
-        /// Название альбома.
-        /// </summary>
-        public string Title { get; set; }
-
-        /// <summary>
-        /// Описание альбома.
-        /// </summary>
-        public string Description { get; set; }
-
-        /// <summary>
-        /// Дата и время создания альбома.
-        /// </summary>
-        [JsonConverter(typeof(UnixDateTimeConverter))]
-        public DateTime? CreateTime { get; set; }
-
-        /// <summary>
-        /// Дата и время последнего обновления альбома.
-        /// </summary>
-        [JsonConverter(typeof(UnixDateTimeConverter))]
-        public DateTime? UpdateTime { get; set; }
-
-        /// <summary>
-        /// Количество фотографий в альбоме.
-        /// </summary>
-        public int Size { get; set; }
-
-        #region Методы
-
-		/// <summary>
-		/// 
+		/// Обложка альбома.
 		/// </summary>
-		/// <param name="response"></param>
-		/// <returns></returns>
+		public Photo Thumb { get; set; }
+
+		/// <summary>
+		/// Название альбома.
+		/// </summary>
+		public string Title { get; set; }
+
+		/// <summary>
+		/// Описание альбома.
+		/// </summary>
+		public string Description { get; set; }
+
+		/// <summary>
+		/// Дата и время создания альбома.
+		/// </summary>
+		[JsonConverter(typeof(UnixDateTimeConverter))]
+		public DateTime? CreateTime { get; set; }
+
+		/// <summary>
+		/// Дата и время последнего обновления альбома.
+		/// </summary>
+		[JsonConverter(typeof(UnixDateTimeConverter))]
+		public DateTime? UpdateTime { get; set; }
+
+		/// <summary>
+		/// Количество фотографий в альбоме.
+		/// </summary>
+		public int Size { get; set; }
+
+	#region Методы
+
+		/// <summary>
+		/// </summary>
+		/// <param name="response"> </param>
+		/// <returns> </returns>
 		public static Album FromJson(VkResponse response)
 		{
 			return new Album
@@ -72,6 +68,23 @@ namespace VkNet.Model.Attachments
 			};
 		}
 
-		#endregion
-    }
+		/// <summary>
+		/// Преобразование класса <see cref="Album" /> в <see cref="VkParameters" />
+		/// </summary>
+		/// <param name="response"> Ответ сервера. </param>
+		/// <returns>Результат преобразования в <see cref="Album" /></returns>
+		public static implicit operator Album(VkResponse response)
+		{
+			if (response == null)
+			{
+				return null;
+			}
+
+			return response.HasToken()
+				? FromJson(response)
+				: null;
+		}
+
+	#endregion
+	}
 }

@@ -8,81 +8,75 @@ using VkNet.Model.Attachments;
 
 namespace VkNet.Utils.JsonConverter
 {
-    /// <summary>
-    /// Attachment JsonConverter
-    /// </summary>
-    /// <seealso cref="Newtonsoft.Json.JsonConverter" />
-    public class AttachmentJsonConverter : Newtonsoft.Json.JsonConverter
-    {
-        /// <summary>
-        /// Writes the JSON representation of the object.
-        /// </summary>
-        /// <param name="writer">The <see cref="T:Newtonsoft.Json.JsonWriter" /> to write to.</param>
-        /// <param name="value">The value.</param>
-        /// <param name="serializer">The calling serializer.</param>
-        /// <exception cref="NotImplementedException"></exception>
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
-        {
-            throw new NotImplementedException();
-        }
+	/// <summary>
+	/// Attachment JsonConverter
+	/// </summary>
+	/// <seealso cref="Newtonsoft.Json.JsonConverter" />
+	public class AttachmentJsonConverter : Newtonsoft.Json.JsonConverter
+	{
+		/// <inheritdoc />
+		/// <exception cref="T:System.NotImplementedException"> </exception>
+		public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+		{
+			var attachments = (IEnumerable<Attachment>) value;
 
-        /// <summary>
-        /// Reads the JSON representation of the object.
-        /// </summary>
-        /// <param name="reader">The <see cref="T:Newtonsoft.Json.JsonReader" /> to read from.</param>
-        /// <param name="objectType">Type of the object.</param>
-        /// <param name="existingValue">The existing value of object being read.</param>
-        /// <param name="serializer">The calling serializer.</param>
-        /// <returns>
-        /// The object value.
-        /// </returns>
-        /// <exception cref="TypeAccessException"></exception>
-        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
-        {
-            if (!objectType.IsGenericType)
-            {
-                throw new TypeAccessException();
-            }
+			var jArray = new JArray();
 
-            if (reader.TokenType == JsonToken.Null)
-            {
-                return null;
-            }
+			foreach (var attachment in attachments)
+			{
+				var type = attachment.Type.Name.ToLower();
+				var jObj = new JObject
+				{
+					{ "type", type },
+					{ type, JToken.FromObject(attachment.Instance, serializer) }
+				};
+				jArray.Add(jObj);
+			}
 
-            if (reader.TokenType != JsonToken.StartArray)
-            {
-                return null;
-            }
+			jArray.WriteTo(writer);
+		}
 
-            var keyType = objectType.GetGenericArguments()[0];
+		/// <inheritdoc />
+		/// <exception cref="T:System.TypeAccessException"> </exception>
+		public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+		{
+			if (!objectType.IsGenericType)
+			{
+				throw new TypeAccessException();
+			}
 
-            var constructedListType = typeof(List<>).MakeGenericType(keyType);
+			if (reader.TokenType == JsonToken.Null)
+			{
+				return null;
+			}
 
-            var list = (IList) Activator.CreateInstance(constructedListType);
-            
-            var vkCollection = typeof(ReadOnlyCollection<>).MakeGenericType(keyType);
-            
-            var obj = JObject.Load(reader);
-            var response = obj["response"] ?? obj;
-            
-            foreach (var item in response)
-            {
-                list.Add(Attachment.FromJson(new VkResponse(item) {RawJson = response.ToString()}));
-            }
+			if (reader.TokenType != JsonToken.StartArray)
+			{
+				return null;
+			}
 
-            return Activator.CreateInstance(vkCollection, list);
-        }
+			var keyType = objectType.GetGenericArguments()[0];
 
-        /// <summary>
-        /// Determines whether this instance can convert the specified object type.
-        /// </summary>
-        /// <param name="objectType">Type of the object.</param>
-        /// <returns>
-        /// <c>true</c> if this instance can convert the specified object type; otherwise, <c>false</c>.
-        /// </returns>
-        public override bool CanConvert(Type objectType)
-        {
-            return typeof(ReadOnlyCollection<>).IsAssignableFrom(objectType);
-        }
-    }
+			var constructedListType = typeof(List<>).MakeGenericType(keyType);
+
+			var list = (IList) Activator.CreateInstance(type: constructedListType);
+
+			var vkCollection = typeof(ReadOnlyCollection<>).MakeGenericType(keyType);
+
+			var obj = JArray.Load(reader: reader);
+
+			foreach (var item in obj)
+			{
+				list.Add(value: Attachment.FromJson(response: new VkResponse(token: item) { RawJson = item.ToString() }));
+			}
+
+			return Activator.CreateInstance(vkCollection, list);
+		}
+
+		/// <inheritdoc />
+		public override bool CanConvert(Type objectType)
+		{
+			return typeof(ReadOnlyCollection<>).IsAssignableFrom(c: objectType);
+		}
+	}
 }

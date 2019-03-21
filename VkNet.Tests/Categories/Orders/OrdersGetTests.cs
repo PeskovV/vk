@@ -1,0 +1,24 @@
+using System.Diagnostics.CodeAnalysis;
+using NUnit.Framework;
+using VkNet.Tests.Infrastructure;
+
+namespace VkNet.Tests.Categories.Orders
+{
+	[TestFixture]
+	[ExcludeFromCodeCoverage]
+	public class OrdersGetTests : CategoryBaseTest
+	{
+		protected override string Folder => "Orders";
+
+		[Test]
+		public void Get()
+		{
+			Url = "https://api.vk.com/method/orders.get";
+			ReadCategoryJsonPath(nameof(Get));
+
+			var result = Api.Orders.Get();
+
+			Assert.IsNotEmpty(result);
+		}
+	}
+}

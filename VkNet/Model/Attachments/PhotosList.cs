@@ -1,36 +1,32 @@
 ﻿using System;
-
 using VkNet.Model.Attachments;
 using VkNet.Utils;
 
 namespace VkNet.UWP.Model.Attachments
 {
+	/// <inheritdoc />
 	/// <summary>
-	/// 
+	/// Список фото
 	/// </summary>
 	[Obsolete("Для версии API ниже 5.0")]
 	[Serializable]
-	public class PhotosList: MediaAttachment
+	public class PhotosList : MediaAttachment
 	{
-		static PhotosList()
-		{
-			RegisterType(typeof(PhotosList), "photos_list");
-		}
+		/// <inheritdoc />
+		protected override string Alias => "photos_list";
 
-		#region Private Methods
+	#region Private Methods
 
 		/// <summary>
-		/// 
+		/// Преобразование класса <see cref="PhotosList" /> в <see cref="VkParameters" />
 		/// </summary>
-		/// <param name="response"></param>
-		/// <returns></returns>
-		public static PhotosList FromJson(VkResponse response)
+		/// <param name="response"> Ответ сервера. </param>
+		/// <returns> Результат преобразования в <see cref="PhotosList" /> </returns>
+		public static implicit operator PhotosList(VkResponse response)
 		{
-			var list = new PhotosList();
-
-			return list;
+			return response == null ? null : new PhotosList();
 		}
-		
-		#endregion
+
+	#endregion
 	}
 }

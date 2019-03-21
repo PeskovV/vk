@@ -1,5 +1,4 @@
 ﻿using System;
-
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using VkNet.Utils;
@@ -11,14 +10,9 @@ namespace VkNet.Model.Attachments
 	/// </summary>
 	[Serializable]
 	public class WallReply : MediaAttachment
-    {
-		/// <summary>
-		/// Комментарий к записи на стене.
-		/// </summary>
-		static WallReply()
-        {
-            RegisterType(typeof(WallReply), "wall_reply");
-        }
+	{
+		/// <inheritdoc />
+		protected override string Alias => "wall_reply";
 
 		/// <summary>
 		/// Идентификатор автора комментария.
@@ -54,8 +48,8 @@ namespace VkNet.Model.Attachments
 		/// <summary>
 		/// Разобрать из json.
 		/// </summary>
-		/// <param name="response">Ответ сервера.</param>
-		/// <returns></returns>
+		/// <param name="response"> Ответ сервера. </param>
+		/// <returns> </returns>
 		public static WallReply FromJson(VkResponse response)
 		{
 			var wallReply = new WallReply
@@ -70,6 +64,23 @@ namespace VkNet.Model.Attachments
 			};
 
 			return wallReply;
+		}
+
+		/// <summary>
+		/// Преобразование класса <see cref="WallReply" /> в <see cref="VkParameters" />
+		/// </summary>
+		/// <param name="response"> Ответ сервера. </param>
+		/// <returns>Результат преобразования в <see cref="WallReply" /></returns>
+		public static implicit operator WallReply(VkResponse response)
+		{
+			if (response == null)
+			{
+				return null;
+			}
+
+			return response.HasToken()
+				? FromJson(response)
+				: null;
 		}
 	}
 }

@@ -1,13 +1,12 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using NLog;
 using VkNet.Abstractions.Utils;
 
 namespace VkNet.Utils
@@ -16,93 +15,102 @@ namespace VkNet.Utils
 	[UsedImplicitly]
 	public class RestClient : IRestClient
 	{
-		/// <summary>
-		/// The log
-		/// </summary>
-		private readonly ILogger _logger;
+		private readonly HttpClient _httpClient;
+
+		private readonly ILogger<RestClient> _logger;
 
 		/// <inheritdoc />
-		public RestClient(ILogger logger, IWebProxy proxy)
+		public RestClient(HttpClient httpClient, ILogger<RestClient> logger)
 		{
+			_httpClient = httpClient;
 			_logger = logger;
-			Proxy = proxy;
 		}
 
 		/// <inheritdoc />
+		[Obsolete("Use HttpClientFactory to configure proxy.")]
 		public IWebProxy Proxy { get; set; }
 
-		private TimeSpan _timeoutSeconds;
+		/// <inheritdoc />
+		[Obsolete("Use HttpClientFactory to configure timeout.")]
+		public TimeSpan Timeout { get; set; }
 
 		/// <inheritdoc />
-		public TimeSpan Timeout
+		public Task<HttpResponse<string>> GetAsync(Uri uri, IEnumerable<KeyValuePair<string, string>> parameters)
 		{
-			get => _timeoutSeconds == TimeSpan.MinValue ? TimeSpan.FromSeconds(300) : _timeoutSeconds;
-			set => _timeoutSeconds = value;
-		}
-
-		/// <inheritdoc />
-		public async Task<HttpResponse<string>> GetAsync(Uri uri, VkParameters parameters)
-		{
-			var queries = parameters.Where(k => !string.IsNullOrWhiteSpace(k.Value))
-				.Select(kvp => $"{kvp.Key.ToLowerInvariant()}={kvp.Value}");
+			var queries = parameters
+				.Where(parameter => !string.IsNullOrWhiteSpace(parameter.Value))
+				.Select(parameter => $"{parameter.Key.ToLowerInvariant()}={parameter.Value}");
 
 			var url = new UriBuilder(uri)
 			{
 				Query = string.Join("&", queries)
 			};
 
-			_logger?.Debug($"GET request: {url.Uri}");
-			return await Call(httpClient => httpClient.GetAsync(url.Uri));
+			_logger?.LogDebug($"GET request: {url.Uri}");
+
+			var request = new HttpRequestMessage(HttpMethod.Get, url.Uri);
+
+			return CallAsync(httpClient => httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead));
 		}
 
 		/// <inheritdoc />
-		public async Task<HttpResponse<string>> PostAsync(Uri uri, IEnumerable<KeyValuePair<string, string>> parameters)
+		public Task<HttpResponse<string>> PostAsync(Uri uri, IEnumerable<KeyValuePair<string, string>> parameters)
 		{
-			var json = JsonConvert.SerializeObject(parameters);
-			_logger?.Debug($"POST request: {uri}{Environment.NewLine}{Utilities.PreetyPrintJson(json)}");
-			HttpContent content = new FormUrlEncodedContent(parameters);
-			return await Call(httpClient => httpClient.PostAsync(uri, content));
-		}
-
-		private async Task<HttpResponse<string>> Call(
-			Func<HttpClient, Task<HttpResponseMessage>> method)
-		{
-			var handler = new HttpClientHandler
+			if (_logger != null)
 			{
-				UseProxy = false
-			};
-
-			if (Proxy != null)
-			{
-				handler = new HttpClientHandler
-				{
-					Proxy = Proxy,
-					UseProxy = true,
-				};
-
-				_logger?.Debug($"Use Proxy: {Proxy}");
+				var json = JsonConvert.SerializeObject(parameters);
+				_logger.LogDebug($"POST request: {uri}{Environment.NewLine}{Utilities.PrettyPrintJson(json)}");
 			}
 
-			using (var client = new HttpClient(handler))
+			var content = new FormUrlEncodedContent(parameters);
+
+			var request = new HttpRequestMessage(HttpMethod.Post, uri) { Content = content };
+
+			return CallAsync(httpClient => httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead));
+		}
+
+		private async Task<HttpResponse<string>> CallAsync(Func<HttpClient, Task<HttpResponseMessage>> method)
+		{
+			var response = await method(_httpClient).ConfigureAwait(false);
+
+			var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+			_logger?.LogDebug($"Response:{Environment.NewLine}{Utilities.PrettyPrintJson(content)}");
+			var url = response.RequestMessage.RequestUri.ToString();
+
+			return response.IsSuccessStatusCode
+				? HttpResponse<string>.Success(response.StatusCode, content, url)
+				: HttpResponse<string>.Fail(response.StatusCode, content, url);
+		}
+
+		/// <inheritdoc />
+		public void Dispose()
+		{
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
+
+		/// <summary>
+		/// Releases unmanaged and - optionally - managed resources.
+		/// </summary>
+		~RestClient()
+		{
+			Dispose(false);
+		}
+
+		/// <summary>
+		/// Releases unmanaged and - optionally - managed resources.
+		/// </summary>
+		/// <param name="disposing">
+		/// <c> true </c> to release both managed and unmanaged resources; <c> false </c>
+		/// to release only
+		/// unmanaged resources.
+		/// </param>
+		protected virtual void Dispose(bool disposing)
+		{
+			if (disposing)
 			{
-				if (Timeout != TimeSpan.Zero)
-				{
-					client.Timeout = Timeout;
-				}
-
-				var response = await method(client);
-				var requestUri = response.RequestMessage.RequestUri.ToString();
-
-				if (response.IsSuccessStatusCode)
-				{
-					var json = await response.Content.ReadAsStringAsync();
-					_logger?.Debug($"Response:{Environment.NewLine}{Utilities.PreetyPrintJson(json)}");
-
-					return HttpResponse<string>.Success(response.StatusCode, json, requestUri);
-				}
-
-				var message = await response.Content.ReadAsStringAsync();
-				return HttpResponse<string>.Fail(response.StatusCode, message, requestUri);
+				_httpClient?.Dispose();
 			}
 		}
 	}

@@ -12,13 +12,9 @@ namespace VkNet.Model.Attachments
 	[Serializable]
 	public class Link : MediaAttachment
 	{
-		/// <summary>
-		/// Граффити.
-		/// </summary>
-		static Link()
-		{
-			RegisterType(typeof(Link), "link");
-		}
+		/// <inheritdoc />
+		protected override string Alias => "link";
+
 		/// <summary>
 		/// Адрес ссылки.
 		/// </summary>
@@ -55,7 +51,9 @@ namespace VkNet.Model.Attachments
 		public LinkButton Button { get; set; }
 
 		/// <summary>
-		/// Идентификатр wiki страницы с контентом для предпросмотра содержимого страницы. Идентификатор возвращается в формате "owner_id_page_id".
+		/// Идентификатр wiki страницы с контентом для предпросмотра содержимого страницы.
+		/// Идентификатор возвращается в формате
+		/// "owner_id_page_id".
 		/// </summary>
 		public string PreviewPage { get; set; }
 
@@ -95,15 +93,16 @@ namespace VkNet.Model.Attachments
 			return Uri.ToString();
 		}
 
-		#region Методы
+	#region Методы
+
 		/// <summary>
 		/// Разобрать из json.
 		/// </summary>
-		/// <param name="response">Ответ сервера.</param>
-		/// <returns></returns>
+		/// <param name="response"> Ответ сервера. </param>
+		/// <returns> </returns>
 		public static Link FromJson(VkResponse response)
 		{
-			var link = new Link
+			return new Link
 			{
 				Id = response["id"],
 				Uri = response["url"],
@@ -120,10 +119,24 @@ namespace VkNet.Model.Attachments
 				Button = response["button"],
 				PreviewUrl = response["preview_url"]
 			};
-
-			return link;
 		}
 
-		#endregion
+		/// <summary>
+		/// Преобразование класса <see cref="Link" /> в <see cref="VkParameters" />
+		/// </summary>
+		/// <param name="response"> Ответ сервера. </param>
+		/// <returns>Результат преобразования в <see cref="Link" /></returns>
+		public static implicit operator Link(VkResponse response)
+		{
+			if (response == null)
+			{
+				return null;
+			}
+
+			return response.HasToken()
+				? FromJson(response)
+				: null;
+		}
+	#endregion
 	}
 }

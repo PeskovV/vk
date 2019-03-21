@@ -1,15 +1,20 @@
-﻿using System;
-using System.Linq;
+using System;
 using System.Net;
+using System.Net.Http;
 using System.Threading.Tasks;
+using Flurl.Http.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using NLog;
-using NLog.Conditions;
-using NLog.Config;
-using NLog.Targets;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using VkNet.Abstractions.Authorization;
+using VkNet.Abstractions.Core;
 using VkNet.Abstractions.Utils;
-using VkNet.Exception;
+using VkNet.Enums;
+using VkNet.Infrastructure;
+using VkNet.Infrastructure.Authorization.ImplicitFlow;
+using VkNet.Model;
+using VkNet.Utils.AntiCaptcha;
 
 namespace VkNet.Utils
 {
@@ -18,89 +23,55 @@ namespace VkNet.Utils
 	/// </summary>
 	public static class TypeHelper
 	{
-#if NET40
-
-/// <summary>
-/// Получить информацию о типе
-/// </summary>
-/// <param name="type">Тип</param>
-/// <returns>Тип</returns>
-		public static Type GetTypeInfo(this Type type)
-		{
-			return type;
-		}
-
-#endif
 		/// <summary>
 		/// DI регистрация зависимостей по умолчанию
 		/// </summary>
-		/// <param name="container">DI контейнер</param>
+		/// <param name="container"> DI контейнер </param>
 		public static void RegisterDefaultDependencies(this IServiceCollection container)
 		{
-			if (container.All(x => x.ServiceType != typeof(IBrowser)))
-			{
-				container.TryAddSingleton<IBrowser, Browser>();
-			}
-
-			if (container.All(x => x.ServiceType != typeof(ILogger)))
-			{
-				container.TryAddSingleton(InitLogger());
-			}
-
-			if (container.All(x => x.ServiceType != typeof(IRestClient)))
-			{
-				container.TryAddScoped<IRestClient, RestClient>();
-			}
-
-			if (container.All(x => x.ServiceType != typeof(IWebProxy)))
-			{
-				container.TryAddScoped<IWebProxy>(t => null);
-			}
-		}
-
-		/// <summary>
-		/// Инициализация логгера.
-		/// </summary>
-		/// <returns>Логгер</returns>
-		private static ILogger InitLogger()
-		{
-			var consoleTarget = new ColoredConsoleTarget
-			{
-				UseDefaultRowHighlightingRules = true,
-				Layout = @"${level} ${longdate} ${logger} ${message}"
-			};
-
-			var config = new LoggingConfiguration();
-			config.AddTarget("console", consoleTarget);
-			var rule1 = new LoggingRule("*", LogLevel.Trace, consoleTarget);
-			config.LoggingRules.Add(rule1);
-			
-			LogManager.Configuration = config;
-			return LogManager.GetLogger("VkApi");
+			//container.TryAddSingleton<IBrowser, Browser>();
+			container.TryAddSingleton<INeedValidationHandler, NeedValidationHandler>();
+			container.TryAddSingleton<IApiAuthParams>(t => null);
+			container.TryAddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
+			container.TryAddSingleton<IRestClient, RestClient>();
+			container.TryAddSingleton<IWebProxy>(t => null);
+			container.TryAddSingleton<IVkApiVersionManager, VkApiVersionManager>();
+			container.TryAddSingleton<ICaptchaHandler, CaptchaHandler>();
+			container.TryAddSingleton<ILanguageService, LanguageService>();
+			container.TryAddSingleton<ICaptchaSolver>(sp => null);
+			container.TryAddSingleton<HttpClient>();
+			container.TryAddSingleton<IRateLimiter, RateLimiter>();
+			container.TryAddSingleton<IAwaitableConstraint, CountByIntervalAwaitableConstraint>();
+			container.RegisterAuthorization();
 		}
 
 		/// <summary>
 		/// Попытаться асинхронно выполнить метод.
 		/// </summary>
-		/// <param name="func">Синхронный метод.</param>
-		/// <typeparam name="T">Тип ответа</typeparam>
-		/// <returns>Результат выполнения функции.</returns>
+		/// <param name="func"> Синхронный метод. </param>
+		/// <typeparam name="T"> Тип ответа </typeparam>
+		/// <returns> Результат выполнения функции. </returns>
 		public static Task<T> TryInvokeMethodAsync<T>(Func<T> func)
 		{
 			var tcs = new TaskCompletionSource<T>();
 
 			Task.Factory.StartNew(() =>
-			{
-				try
 				{
-					var result = func.Invoke();
-					tcs.SetResult(result);
-				}
-				catch (VkApiException ex)
-				{
-					tcs.SetException(ex);
-				}
-			});
+					try
+					{
+						var result = func.Invoke();
+						tcs.SetResult(result);
+					}
+					catch (OperationCanceledException)
+					{
+						tcs.SetCanceled();
+					}
+					catch (System.Exception ex)
+					{
+						tcs.SetException(ex);
+					}
+				})
+				.ConfigureAwait(false);
 
 			return tcs.Task;
 		}
@@ -108,8 +79,8 @@ namespace VkNet.Utils
 		/// <summary>
 		/// Попытаться асинхронно выполнить метод.
 		/// </summary>
-		/// <param name="func">Синхронный метод.</param>
-		/// <returns>Результат выполнения функции.</returns>
+		/// <param name="func"> Синхронный метод. </param>
+		/// <returns> Результат выполнения функции. </returns>
 		public static Task TryInvokeMethodAsync(Action func)
 		{
 			var tcs = new TaskCompletionSource<Task>();
@@ -121,13 +92,36 @@ namespace VkNet.Utils
 					func.Invoke();
 					tcs.SetResult(null);
 				}
-				catch (VkApiException ex)
+				catch (OperationCanceledException)
+				{
+					tcs.SetCanceled();
+				}
+				catch (System.Exception ex)
 				{
 					tcs.SetException(ex);
 				}
 			});
 
 			return tcs.Task;
+		}
+
+		private static void RegisterAuthorization(this IServiceCollection services)
+		{
+			services.TryAddSingleton<IAuthorizationFlow, Browser>();
+			services.TryAddSingleton<IVkAuthorization<ImplicitFlowPageType>, ImplicitFlowVkAuthorization>();
+			services.TryAddSingleton<IAuthorizationFormHtmlParser, AuthorizationFormHtmlParser>();
+			services.TryAddSingleton<IAuthorizationFormFactory, AuthorizationFormFactory>();
+
+			services.AddSingleton<IAuthorizationForm, ImplicitFlowCaptchaLoginForm>();
+			services.AddSingleton<IAuthorizationForm, ImplicitFlowLoginForm>();
+			services.AddSingleton<IAuthorizationForm, TwoFactorForm>();
+			services.AddSingleton<IAuthorizationForm, ConsentForm>();
+			services.TryAddSingleton<IFlurlClientFactory, PerBaseUrlFlurlClientFactory>();
+			services.TryAddSingleton<DefaultHttpClientFactory, ProxyHttpClientFactory>();
+			services.TryAddSingleton<DefaultHttpClientFactory, NoRedirectHttpClientFactory>();
+			services.TryAddSingleton<ProxyHttpClientFactory>();
+			services.TryAddSingleton<NoRedirectHttpClientFactory>();
+			services.TryAddSingleton<CookieContainer>();
 		}
 	}
 }

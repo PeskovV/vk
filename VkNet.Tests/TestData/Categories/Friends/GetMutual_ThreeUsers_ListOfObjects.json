@@ -1,0 +1,13 @@
+{
+  "response": [
+    {
+      "id": 2744,
+      "common_friends": [
+        123,
+        456,
+        789
+      ],
+      "common_count": 0
+    }
+  ]
+}
