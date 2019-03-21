@@ -276,11 +276,6 @@ namespace VkNet.Abstractions
 		/// <summary>
 		/// Помечает сообщения как прочитанные.
 		/// </summary>
-		/// <param name="messageIds">
-		/// Идентификаторы сообщений. список положительных чисел, разделенных запятыми
-		/// (Список
-		/// положительных чисел, разделенных запятыми).
-		/// </param>
 		/// <param name="peerId">
 		/// Идентификатор чата или пользователя, если это диалог.
 		/// строка (Строка).
@@ -290,13 +285,16 @@ namespace VkNet.Abstractions
 		/// начиная с
 		/// данного. положительное число (Положительное число).
 		/// </param>
+		/// <param name="groupId">
+		/// Идентификатор сообщества (для сообщений сообщества с ключом доступа пользователя).
+		/// </param>
 		/// <returns>
 		/// После успешного выполнения возвращает <c> true </c>.
 		/// </returns>
 		/// <remarks>
 		/// Страница документации ВКонтакте http://vk.com/dev/messages.markAsRead
 		/// </remarks>
-		bool MarkAsRead(IEnumerable<long> messageIds, string peerId, long? startMessageId = null);
+		bool MarkAsRead(string peerId, long? startMessageId = null, long? groupId = null);
 
 		/// <summary>
 		/// Изменяет статус набора текста пользователем в диалоге.
@@ -496,12 +494,15 @@ namespace VkNet.Abstractions
 		/// сообщений и других событий.
 		/// </summary>
 		/// <param name="lpVersion">
-		/// версия для подключения к Long Poll. Актуальная версия:
+		/// Версия для подключения к Long Poll. Актуальная версия:
 		/// 2.
 		/// </param>
 		/// <param name="needPts">
 		/// <c> true </c> — возвращать поле pts, необходимое для работы метода
 		/// messages.getLongPollHistory
+		/// </param>
+		/// <param name="groupId">
+		/// Айди группы, от которой получать данные
 		/// </param>
 		/// <returns>
 		/// Возвращает объект, с помощью которого можно подключиться к серверу быстрых
@@ -513,7 +514,7 @@ namespace VkNet.Abstractions
 		/// содержащей Settings.Messages
 		/// Страница документации ВКонтакте http://vk.com/dev/messages.getLongPollServer
 		/// </remarks>
-		LongPollServerResponse GetLongPollServer(bool needPts = false, uint lpVersion = 2);
+		LongPollServerResponse GetLongPollServer(bool needPts = false, uint lpVersion = 2, ulong? groupId = null);
 
 		/// <summary>
 		/// Возвращает обновления в личных сообщениях пользователя.
@@ -883,7 +884,55 @@ namespace VkNet.Abstractions
 		/// Страница документации ВКонтакте http://vk.com/dev/messages.searchConversations
 		/// </remarks>
 		SearchConversationsResult SearchConversations(string q, IEnumerable<string> fields, ulong? count = null, bool? extended = null,
-												ulong? groupId = null);
+													ulong? groupId = null);
+
+		/// <summary>
+		/// Закрепляет сообщение.
+		/// </summary>
+		/// <param name = "peerId">
+		/// Идентификатор назначения.
+		/// Для пользователя:
+		/// id  пользователя.
+		/// Для групповой беседы:
+		/// 2000000000 + id беседы.
+		/// Для сообщества:
+		/// -id сообщества.
+		/// целое число, обязательный параметр
+		/// </param>
+		/// <param name = "messageId">
+		/// Идентификатор сообщения, которое нужно закрепить. положительное число
+		/// </param>
+		/// <returns>
+		/// Возвращает объект закрепленного сообщения.
+		/// </returns>
+		/// <remarks>
+		/// Страница документации ВКонтакте http://vk.com/dev/messages.pin
+		/// </remarks>
+		PinnedMessage Pin(long peerId, ulong? messageId = null);
+
+		/// <summary>
+		/// Открепляет сообщение.
+		/// </summary>
+		/// <param name = "peerId">
+		/// Идентификатор назначения.
+		/// Для пользователя:
+		/// id  пользователя.
+		/// Для групповой беседы:
+		/// 2000000000 + id беседы.
+		/// Для сообщества:
+		/// -id сообщества.
+		/// целое число, обязательный параметр
+		/// </param>
+		/// <param name = "groupId">
+		/// Идентификатор сообщества (для сообщений сообщества с ключом доступа пользователя). положительное число
+		/// </param>
+		/// <returns>
+		/// После успешного выполнения возвращает 1.
+		/// </returns>
+		/// <remarks>
+		/// Страница документации ВКонтакте http://vk.com/dev/messages.unpin
+		/// </remarks>
+		bool Unpin(long peerId, ulong? groupId = null);
 
 	#region Obsoleted
 

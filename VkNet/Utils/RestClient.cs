@@ -5,8 +5,8 @@ using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using NLog;
 using VkNet.Abstractions.Utils;
 
 namespace VkNet.Utils
@@ -18,12 +18,12 @@ namespace VkNet.Utils
 		/// <summary>
 		/// The log
 		/// </summary>
-		private readonly ILogger _logger;
+		private readonly ILogger<RestClient> _logger;
 
 		private TimeSpan _timeoutSeconds;
 
 		/// <inheritdoc />
-		public RestClient(ILogger logger, IWebProxy proxy)
+		public RestClient(ILogger<RestClient> logger, IWebProxy proxy)
 		{
 			_logger = logger;
 			Proxy = proxy;
@@ -40,7 +40,7 @@ namespace VkNet.Utils
 		}
 
 		/// <inheritdoc />
-		public async Task<HttpResponse<string>> GetAsync(Uri uri, VkParameters parameters)
+		public Task<HttpResponse<string>> GetAsync(Uri uri, VkParameters parameters)
 		{
 			var queries = parameters.Where(predicate: k => !string.IsNullOrWhiteSpace(value: k.Value))
 				.Select(selector: kvp => $"{kvp.Key.ToLowerInvariant()}={kvp.Value}");
@@ -50,19 +50,19 @@ namespace VkNet.Utils
 				Query = string.Join(separator: "&", values: queries)
 			};
 
-			_logger?.Debug(message: $"GET request: {url.Uri}");
+			_logger?.LogDebug(message: $"GET request: {url.Uri}");
 
-			return await Call(method: httpClient => httpClient.GetAsync(requestUri: url.Uri)).ConfigureAwait(false);
+			return Call(method: httpClient => httpClient.GetAsync(requestUri: url.Uri));
 		}
 
 		/// <inheritdoc />
-		public async Task<HttpResponse<string>> PostAsync(Uri uri, IEnumerable<KeyValuePair<string, string>> parameters)
+		public Task<HttpResponse<string>> PostAsync(Uri uri, IEnumerable<KeyValuePair<string, string>> parameters)
 		{
 			var json = JsonConvert.SerializeObject(value: parameters);
-			_logger?.Debug(message: $"POST request: {uri}{Environment.NewLine}{Utilities.PreetyPrintJson(json: json)}");
+			_logger?.LogDebug(message: $"POST request: {uri}{Environment.NewLine}{Utilities.PreetyPrintJson(json: json)}");
 			HttpContent content = new FormUrlEncodedContent(nameValueCollection: parameters);
 
-			return await Call(method: httpClient => httpClient.PostAsync(requestUri: uri, content: content)).ConfigureAwait(false);
+			return Call(method: httpClient => httpClient.PostAsync(requestUri: uri, content: content));
 		}
 
 		private async Task<HttpResponse<string>> Call(Func<HttpClient, Task<HttpResponseMessage>> method)
@@ -80,7 +80,7 @@ namespace VkNet.Utils
 					UseProxy = true
 				};
 
-				_logger?.Debug(message: $"Use Proxy: {Proxy}");
+				_logger?.LogDebug(message: $"Use Proxy: {Proxy}");
 			}
 
 			using (var client = new HttpClient(handler: handler))
@@ -96,7 +96,7 @@ namespace VkNet.Utils
 				if (response.IsSuccessStatusCode)
 				{
 					var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-					_logger?.Debug(message: $"Response:{Environment.NewLine}{Utilities.PreetyPrintJson(json: json)}");
+					_logger?.LogDebug(message: $"Response:{Environment.NewLine}{Utilities.PreetyPrintJson(json: json)}");
 
 					return HttpResponse<string>.Success(httpStatusCode: response.StatusCode, value: json, requestUri: requestUri);
 				}

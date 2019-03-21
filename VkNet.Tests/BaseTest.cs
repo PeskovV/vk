@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Threading.Tasks;
 using Moq;
@@ -19,6 +20,7 @@ namespace VkNet.Tests
 	/// TODO: V3072 http://www.viva64.com/en/w/V3072 The 'BaseTest' class containing
 	/// IDisposable members does not itself implement IDisposable. Inspect: Api.
 	/// </remarks>
+	[ExcludeFromCodeCoverage]
 	public abstract class BaseTest
 	{
 		/// <summary>
@@ -67,6 +69,15 @@ namespace VkNet.Tests
 					State = "123456"
 				});
 
+			browser.Setup(m => m.Validate(It.IsAny<string>()))
+				.Returns(new AuthorizationResult
+				{
+					AccessToken = "token",
+					ExpiresIn = 1000,
+					UserId = 1,
+					State = "123456"
+				});
+
 			var restClient = new Mock<IRestClient>();
 
 			restClient.Setup(x =>
@@ -100,7 +111,8 @@ namespace VkNet.Tests
 				ApplicationId = 1,
 				Login = "login",
 				Password = "pass",
-				Settings = Settings.All
+				Settings = Settings.All,
+				Phone = "89510000000"
 			});
 
 			Api.RequestsPerSecond = 100000; // Чтобы тесты быстрее выполнялись

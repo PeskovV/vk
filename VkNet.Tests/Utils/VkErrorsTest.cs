@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using NUnit.Framework;
 using VkNet.Exception;
 using VkNet.Utils;
@@ -6,13 +7,14 @@ using VkNet.Utils;
 namespace VkNet.Tests.Utils
 {
 	[TestFixture]
+	[ExcludeFromCodeCoverage]
 	public class VkErrorsTest : BaseTest
 	{
 		private class TestClass
 		{
 			public void Execute(int count)
 			{
-				VkErrors.ThrowIfNumberIsNegative(expr: () => count);
+				VkErrors.ThrowIfNumberIsNegative(() => count);
 			}
 		}
 
@@ -22,7 +24,7 @@ namespace VkNet.Tests.Utils
 			Url = "https://api.vk.com/method/messages.send";
 
 			Json =
-					@"{
+				@"{
 					'error': {
 					  'error_code': 14,
 					  'error_msg': 'Captcha needed',
@@ -57,13 +59,12 @@ namespace VkNet.Tests.Utils
 					}
 				  }";
 
-			var ex = Assert.Throws<CaptchaNeededException>(code: () =>
-					Api.Call(methodName: "messages.send", parameters: VkParameters.Empty, skipAuthorization: true));
+			var ex = Assert.Throws<CaptchaNeededException>(() =>
+				Api.Call("messages.send", VkParameters.Empty, true));
 
-			Assert.That(actual: ex.Sid, expression: Is.EqualTo(expected: 548747100691));
+			Assert.That(ex.Sid, Is.EqualTo(548747100691));
 
-			Assert.That(actual: ex.Img
-					, expression: Is.EqualTo(expected: new Uri(uriString: "http://api.vk.com/captcha.php?sid=548747100284&s=1")));
+			Assert.That(ex.Img, Is.EqualTo(new Uri("http://api.vk.com/captcha.php?sid=548747100284&s=1")));
 		}
 
 		[Test]
@@ -72,7 +73,7 @@ namespace VkNet.Tests.Utils
 			Url = "https://api.vk.com/method/execute";
 
 			Json =
-					@"{
+				@"{
                     'error': {
                         'error_code': 12,
                         'error_msg': 'Unable to compile code: undefined identifier \'test\' in line 1',
@@ -97,8 +98,8 @@ namespace VkNet.Tests.Utils
                     }
                 }";
 
-			Assert.Throws<ImpossibleToCompileCodeException>(code: () =>
-					Api.Call(methodName: "execute", parameters: VkParameters.Empty, skipAuthorization: true));
+			Assert.Throws<ImpossibleToCompileCodeException>(() =>
+				Api.Call("execute", VkParameters.Empty, true));
 		}
 
 		[Test]
@@ -107,7 +108,7 @@ namespace VkNet.Tests.Utils
 			Url = "https://api.vk.com/method/messages.send";
 
 			Json =
-					@"{
+				@"{
 					'error': {
 						'error_code': 214,
 						'error_msg': 'Access to adding post denied: you can only add 50 posts a day',
@@ -136,8 +137,8 @@ namespace VkNet.Tests.Utils
 					}
 				}";
 
-			Assert.Throws<PostLimitException>(code: () =>
-					Api.Call(methodName: "messages.send", parameters: VkParameters.Empty, skipAuthorization: true));
+			Assert.Throws<PostLimitException>(() =>
+				Api.Call("messages.send", VkParameters.Empty, true));
 		}
 
 		[Test]
@@ -146,7 +147,7 @@ namespace VkNet.Tests.Utils
 			Url = "https://api.vk.com/method/messages.send";
 
 			Json =
-					@"{
+				@"{
 					'error': {
 						'error_code': 103,
 						'error_msg': 'Access to adding post denied: you can only add 50 posts a day',
@@ -175,15 +176,15 @@ namespace VkNet.Tests.Utils
 					}
 				}";
 
-			Assert.Throws<OutOfLimitsException>(code: () =>
-					Api.Call(methodName: "messages.send", parameters: VkParameters.Empty, skipAuthorization: true));
+			Assert.Throws<OutOfLimitsException>(() =>
+				Api.Call("messages.send", VkParameters.Empty, true));
 		}
 
 		[Test]
 		public void IfErrorThrowException_GroupAccessDenied_ThrowAccessDeniedException()
 		{
 			const string json =
-					@"{
+				@"{
                     'error': {
                       'error_code': 260,
                       'error_msg': 'Access to the groups list is denied due to the user privacy settings.',
@@ -208,17 +209,16 @@ namespace VkNet.Tests.Utils
                     }
                   }";
 
-			var ex = Assert.Throws<GroupsListAccessDeniedException>(code: () => VkErrors.IfErrorThrowException(json: json));
+			var ex = Assert.Throws<GroupsListAccessDeniedException>(() => VkErrors.IfErrorThrowException(json));
 
-			StringAssert.AreEqualIgnoringCase(expected: "Access to the groups list is denied due to the user privacy settings."
-					, actual: ex.Message);
+			StringAssert.AreEqualIgnoringCase("Access to the groups list is denied due to the user privacy settings.", ex.Message);
 		}
 
 		[Test]
 		public void IfErrorThrowException_NormalCase_NothingExceptions()
 		{
 			const string json =
-					@"{
+				@"{
                     'response': [
                       {
                         'uid': 1,
@@ -233,14 +233,14 @@ namespace VkNet.Tests.Utils
                     ]
                   }";
 
-			VkErrors.IfErrorThrowException(json: json);
+			VkErrors.IfErrorThrowException(json);
 		}
 
 		[Test]
 		public void IfErrorThrowException_UserAuthorizationFail_ThrowUserAuthorizationFailExcption()
 		{
 			const string json =
-					@"{
+				@"{
                     'error': {
                       'error_code': 5,
                       'error_msg': 'User authorization failed: invalid access_token.',
@@ -265,67 +265,69 @@ namespace VkNet.Tests.Utils
                     }
                   }";
 
-			var ex = Assert.Throws<UserAuthorizationFailException>(code: () => VkErrors.IfErrorThrowException(json: json));
+			var ex = Assert.Throws<UserAuthorizationFailException>(() => VkErrors.IfErrorThrowException(json));
 
-			Assert.That(actual: ex.Message, expression: Is.EqualTo(expected: "User authorization failed: invalid access_token."));
-			Assert.That(actual: ex.ErrorCode, expression: Is.EqualTo(expected: 5));
+			Assert.That(ex.Message, Is.EqualTo("User authorization failed: invalid access_token."));
+			Assert.That(ex.ErrorCode, Is.EqualTo(5));
 		}
 
 		[Test]
 		public void IfErrorThrowException_WrongJson_ThrowVkApiException()
 		{
 			const string json = "ThisIsNotJson";
-			var ex = Assert.Throws<VkApiException>(code: () => VkErrors.IfErrorThrowException(json: json));
+			var ex = Assert.Throws<VkApiException>(() => VkErrors.IfErrorThrowException(json));
 
-			Assert.That(actual: ex.Message, expression: Is.EqualTo(expected: "Wrong json data."));
+			Assert.That(ex.Message, Is.EqualTo("Wrong json data."));
 		}
 
 		[Test]
-		[Ignore(reason: "")] // TODO important: strange error, with nullable long everytihng ok, check later on windows OS
+		[Ignore("")]
+
+		// TODO important: strange error, with nullable long everytihng ok, check later on windows OS
 		public void ThrowIfNumberIsNegative_ExpressionVersion_Long()
 		{
 			const long paramName = -1;
 
-			var ex = Assert.Throws<ArgumentException>(code: () => VkErrors.ThrowIfNumberIsNegative(expr: () => paramName));
-			StringAssert.StartsWith(expected: "Отрицательное значение.", actual: ex.Message);
-			StringAssert.Contains(expected: "paramName", actual: ex.Message);
+			var ex = Assert.Throws<ArgumentException>(() => VkErrors.ThrowIfNumberIsNegative(() => paramName));
+			StringAssert.StartsWith("Отрицательное значение.", ex.Message);
+			StringAssert.Contains("paramName", ex.Message);
 		}
 
 		[Test]
 		public void ThrowIfNumberIsNegative_ExpressionVersion_NullabeLong()
 		{
 			long? param = -1;
-			var ex = Assert.Throws<ArgumentException>(code: () => VkErrors.ThrowIfNumberIsNegative(expr: () => param));
+			var ex = Assert.Throws<ArgumentException>(() => VkErrors.ThrowIfNumberIsNegative(() => param));
 
-			StringAssert.StartsWith(expected: "Отрицательное значение.", actual: ex.Message);
-			StringAssert.Contains(expected: "param", actual: ex.Message);
+			StringAssert.StartsWith("Отрицательное значение.", ex.Message);
+			StringAssert.Contains("param", ex.Message);
 		}
 
 		[Test]
 		public void ThrowIfNumberIsNegative_InnerTestClass_ThrowException()
 		{
 			var cls = new TestClass();
-			Assert.Throws<ArgumentException>(code: () => cls.Execute(count: -2));
+			Assert.Throws<ArgumentException>(() => cls.Execute(-2));
 		}
 
 		[Test]
 		public void ThrowIfNumberNotInRange_LessThenMin_ThrowsException()
 		{
-			Assert.Throws<ArgumentOutOfRangeException>(code: () => VkErrors.ThrowIfNumberNotInRange(value: 2, min: 5, max: 10));
+			Assert.Throws<ArgumentOutOfRangeException>(() => VkErrors.ThrowIfNumberNotInRange(2, 5, 10));
 		}
 
 		[Test]
 		public void ThrowIfNumberNotInRange_MoreThanMax_ThrowsException()
 		{
-			Assert.Throws<ArgumentOutOfRangeException>(code: () => VkErrors.ThrowIfNumberNotInRange(value: 12, min: 5, max: 10));
+			Assert.Throws<ArgumentOutOfRangeException>(() => VkErrors.ThrowIfNumberNotInRange(12, 5, 10));
 		}
 
 		[Test]
 		public void ThrowIfNumberNotInRange_ValueInRange_ExceptionNotThrowed()
 		{
-			VkErrors.ThrowIfNumberNotInRange(value: 5, min: 2, max: 7);
-			VkErrors.ThrowIfNumberNotInRange(value: 5, min: 5, max: 7);
-			VkErrors.ThrowIfNumberNotInRange(value: 5, min: 2, max: 5);
+			VkErrors.ThrowIfNumberNotInRange(5, 2, 7);
+			VkErrors.ThrowIfNumberNotInRange(5, 5, 7);
+			VkErrors.ThrowIfNumberNotInRange(5, 2, 5);
 		}
 	}
 }
